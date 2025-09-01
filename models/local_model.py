@@ -1,11 +1,10 @@
 """Local model implementation."""
 
-import os
-
 from typing import Iterator, List
 from langchain.schema import BaseMessage, SystemMessage, HumanMessage, AIMessage
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
+from quanto import quantize, freeze
 
 from .base_model import BaseModel
 
@@ -32,15 +31,22 @@ class LocalModel(BaseModel):
             self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
             self.model = AutoModelForCausalLM.from_pretrained(
                 self.model_name,
-                torch_dtype=torch.float32,
-                device_map="cpu",
+                dtype=torch.float32,
+                device_map="auto",
                 trust_remote_code=False
             )
             
             # Set pad token if not available
             if self.tokenizer.pad_token is None:
                 self.tokenizer.pad_token = self.tokenizer.eos_token
-                
+            
+            # Apply int8 quantization to model weights
+            try:
+                quantize(model=self.model, weights="int8", activations=None)
+                freeze(self.model)
+            except Exception as quant_error:
+                print(f"Warning: Quantization failed, continuing without quantization: {quant_error}")
+
         except Exception as e:
             raise RuntimeError(f"Failed to load local model: {e}")
 
