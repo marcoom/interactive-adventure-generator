@@ -1,0 +1,1 @@
+"""Configuration package for Interactive Adventure Generator."""
