@@ -18,7 +18,7 @@ class TTSEngine:
     def __init__(self):
         """Initialize TTS engine with Piper voices."""
         self.voices: Dict[str, PiperVoice] = {}
-        self.download_dir = Path.home() / ".local/share/piper-tts/piper-voices"
+        self.download_dir = Path("./data/voices")
         self._setup_voices()
 
     def _setup_voices(self) -> None:

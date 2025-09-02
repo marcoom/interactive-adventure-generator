@@ -4,7 +4,7 @@ from typing import Iterator, List
 from langchain.schema import BaseMessage
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
-from quanto import quantize, freeze
+from quanto import quantize, freeze, qint8
 
 from .base_model import BaseModel
 
@@ -46,7 +46,7 @@ class LocalModel(BaseModel):
             
             # Apply quantization for memory efficiency
             try:
-                quantize(model=self.model, weights="int8", activations=None)
+                quantize(model=self.model, weights=qint8, activations=None)
                 freeze(self.model)
                 print("Model quantization applied successfully")
             except Exception as e:

@@ -153,7 +153,7 @@ class GradioInterface:
             self.model.set_temperature(temperature_value)
             self.narrator.set_language(selected_language)
             self.narrator.set_user_preferences(user_preferences)
-            
+
             # Generate new story
             new_message = self.narrator.generate_initial_story()
             new_history = [("", new_message)]
@@ -193,7 +193,7 @@ class GradioInterface:
         if settings.use_local_model:
             gr.Warning(
                 "⚠️ Running with local AI model: Responses may be slower and less coherent than cloud-based models. For better performance, set your GOOGLE_API_KEY environment variable.",
-                duration=0
+                duration=10
             )
 
     def create_interface(self) -> gr.Blocks:
