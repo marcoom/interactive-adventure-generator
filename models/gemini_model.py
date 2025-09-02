@@ -27,7 +27,7 @@ class GeminiModel(BaseModel):
         self._streaming_llm = ChatGoogleGenerativeAI(
             model="gemini-2.0-flash",
             google_api_key=api_key,
-            streaming=True,
+            disable_streaming=False,
             temperature=temperature
         )
 
@@ -77,6 +77,6 @@ class GeminiModel(BaseModel):
         self._streaming_llm = ChatGoogleGenerativeAI(
             model="gemini-2.0-flash",
             google_api_key=self.api_key,
-            streaming=True,
+            disable_streaming=False,
             temperature=temperature
         )
