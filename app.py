@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""
-Interactive Adventure Generator
+"""Interactive Adventure Generator.
 
 An AI-powered storytelling application that creates dynamic, interactive 
-narratives where user choices directly influence story progression and outcomes.
+narratives where user choices directly influence story progression and 
+outcomes.
 
 Supports both Google Gemini (with API key) and local models.
 """
@@ -14,11 +14,9 @@ import argparse
 import warnings
 from pathlib import Path
 
-# Add project root to Python path
 PROJECT_ROOT = Path(__file__).parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-# Suppress warnings for cleaner output
 warnings.filterwarnings('ignore')
 
 
@@ -31,13 +29,11 @@ def load_environment():
             load_dotenv(env_path)
             print(f"Loaded environment from: {env_path}")
     except ImportError:
-        # python-dotenv not available, skip loading
         pass
 
 
 def validate_environment():
     """Validate environment and display configuration info."""
-    # Import settings after environment is loaded
     from config.settings import settings
     from utils.helpers import get_model_info
     
@@ -47,7 +43,6 @@ def validate_environment():
     except Exception as e:
         print(f"⚠ Configuration warning: {e}")
     
-    # Display model information
     model_info = get_model_info()
     print(f"Model: {model_info['name']} ({model_info['provider']})")
     print(f"Type: {'Local' if model_info['type'] == 'local' else 'Remote'}")
@@ -63,16 +58,16 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Environment Variables:
-  GOOGLE_API_KEY    Google API key (optional - uses local model if not set)
-  DEFAULT_LANGUAGE  Default language (English or Español)
+  GOOGLE_API_KEY       Google API key (optional - uses local if not set)
+  DEFAULT_LANGUAGE     Default language (English or Español)
   DEFAULT_TEMPERATURE  Default model temperature (0.0-2.0)
-  LOCAL_MODEL_NAME  Local model to use (default: SmolLM2-135M-Instruct)
-  GRADIO_PORT      Server port (default: 7860)
-  GRADIO_HOST      Server host (default: 0.0.0.0)
+  LOCAL_MODEL_NAME     Local model (default: SmolLM2-135M-Instruct)
+  GRADIO_PORT          Server port (default: 7860)
+  GRADIO_HOST          Server host (default: 0.0.0.0)
 
 Examples:
   python app.py                    # Start with default settings
-  python app.py --share           # Start with public sharing enabled
+  python app.py --share           # Start with public sharing
   python app.py --port 8080       # Start on custom port
   
 For Docker:
@@ -108,6 +103,12 @@ For Docker:
 
     args = parser.parse_args()
     
+    # Load environment variables
+    load_environment()
+    
+    # Import settings after environment is loaded
+    from config.settings import settings
+    
     # Override settings with command line arguments
     if args.port:
         settings.gradio_port = args.port
@@ -121,11 +122,7 @@ For Docker:
     print("🎭 Interactive Adventure Generator")
     print("=" * 50)
     
-    # Load environment variables
-    load_environment()
-    
-    # Import settings after environment is loaded and reload them
-    from config.settings import settings
+    # Import remaining modules
     from ui.interface import GradioInterface
     from utils.helpers import setup_environment
     

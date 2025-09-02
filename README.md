@@ -1,89 +1,81 @@
 # Interactive Adventure Generator
 
-**An AI-powered storytelling application that creates dynamic, interactive narratives where your choices directly influence story progression and outcomes.**
+An AI-powered storytelling application that creates dynamic, interactive narratives where your choices directly influence story progression and outcomes. Create your own adventure and make decisions that can lead you to success or failure.
 
-Create your own story and make decisions that can lead you to success or failure. Choose wisely!
-
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python](https://img.shields.io/badge/python-3.11+-green.svg)
-![Docker](https://img.shields.io/badge/docker-ready-blue.svg)
+Supports both cloud-based AI (Google Gemini) and fully offline local models, with voice interaction and multilingual narration.
 
 ## Features
 
-- **Dual AI Support**: Google Gemini 2.0 Flash (with API key) or local model (CPU-based, no API key required)
-- **Voice Interaction**: Speak your choices using Whisper speech-to-text
-- **Narrated Stories**: Listen to AI-generated narration with Piper TTS
-- **Multi-language**: English and Spanish support for both text and voice
-- **Customizable**: Adjustable AI creativity and custom story preferences
-- **User-Friendly**: Clean Gradio web interface
-- **Docker Ready**: Fully containerized with pre-downloaded models
+- **Dual AI Support**: Google Gemini 2.0 Flash or local CPU-based models
+- **Voice Interaction**: Speak your choices with Whisper speech-to-text
+- **Audio Narration**: Listen to AI-generated stories with Piper TTS
+- **Multilingual**: English and Spanish text and voice support
+- **Customizable**: Adjust AI creativity and story preferences
+- **Web Interface**: Clean Gradio-based UI
+- **Docker Ready**: Containerized with pre-downloaded models
 
 ## Quick Start
 
-### Option 1: Docker (Recommended)
+### Docker (Recommended)
 
 ```bash
-# Build and run the container
+# Build and run
 docker build -t interactive-adventure .
 docker run -p 7860:7860 interactive-adventure
 
-# With Google API key (optional)
+# With Google API key (optional, for better performance)
 docker run -p 7860:7860 -e GOOGLE_API_KEY=your_key_here interactive-adventure
 ```
 
-### Option 2: Local Installation
+### Local Installation
 
-#### Prerequisites
-
-**System Dependencies:**
-- Python 3.11+
-- ffmpeg (required for voice interaction)
+**Requirements:** Python 3.11+, ffmpeg
 
 ```bash
-# Install ffmpeg
-# Ubuntu/Debian:
-sudo apt-get install ffmpeg
+# Install system dependency
+sudo apt-get install ffmpeg  # Ubuntu/Debian
+brew install ffmpeg         # macOS
 
-# macOS:
-brew install ffmpeg
-
-# Windows:
-# Download from https://ffmpeg.org/download.html
-```
-
-#### Installation
-
-```bash
-# Clone the repository
+# Clone and setup
 git clone <repository-url>
 cd interactive-adventure-generator
-
-# Copy environment template and configure
-cp .env.example .env
-# Edit .env file with your API keys and settings (optional)
-nano .env  # or use your preferred editor
-
-# Install Python dependencies
+cp .env.example .env  # Optional: add GOOGLE_API_KEY
 pip install -r requirements.txt
 
-# Run the application
+# Run
 python app.py
-
-# With custom port
-python app.py --port 8080 --share
 ```
 
-Visit `http://localhost:7860` to start your adventure!
+Visit `http://localhost:7860` to start your adventure. Works offline with local models or with Google API key for enhanced performance.
 
-## How to Play
+## Usage
 
-1. **Read the Story**: The AI narrator sets the scene and presents you with situations
-2. **Make Choices**: Type or speak your decisions in the input field
-3. **Experience Consequences**: Watch how your choices shape the narrative
-4. **Reach Endings**: Stories conclude naturally or when your character meets their fate
-5. **Customize Experience**: Adjust language, AI creativity, and story preferences
+### How It Works
 
-## Architecture
+1. **Story Introduction**: AI generates an initial scenario and presents you with a situation
+2. **Make Your Choice**: Type your action or use the microphone to speak your decision
+3. **Story Continues**: AI responds with consequences based on your choices
+4. **Branching Paths**: Your decisions directly influence story direction and outcomes
+5. **Natural Endings**: Stories conclude when the narrative reaches a natural end
+
+### Input Methods
+- **Text Input**: Type actions and decisions in the input field
+- **Voice Input**: Click microphone icon and speak (transcribed via Whisper)
+- **Mixed Mode**: Combine text and voice input as preferred
+
+### Story Controls
+**End Story Commands** (case insensitive): `quit`, `exit`, `q`, `goodbye`
+
+The AI responds with "The End." and disables input until you start a new story.
+
+### Customization
+Access "Additional Settings" panel for:
+- **Language**: English or Spanish (text and voice)
+- **Temperature**: AI creativity level (0.0 conservative, 2.0 very creative) 
+- **Autoplay Narration**: Automatic audio narration of responses
+- **User Preferences**: Custom guidelines for story themes and settings
+
+## Project Structure
 
 ```
 interactive-adventure-generator/
@@ -104,8 +96,11 @@ interactive-adventure-generator/
 │   └── interface.py           # Gradio web interface
 ├── utils/
 │   └── helpers.py             # Utility functions
+├── notebooks/                 # Jupyter demos and prototypes
 └── data/                      # Pre-downloaded models and voices
 ```
+
+The application follows clean architecture principles with modular components. The `models/` directory implements an abstract base class pattern for swapping between cloud and local AI providers. The `notebooks/` directory contains the original Jupyter prototype and individual component demonstrations.
 
 ## Configuration
 
@@ -114,90 +109,66 @@ interactive-adventure-generator/
 Create a `.env` file or set environment variables:
 
 ```bash
-# Optional - uses local model if not provided
+# Google API Key (optional - provides superior performance)
 GOOGLE_API_KEY=your_google_api_key
 
 # Application settings
 DEFAULT_LANGUAGE=English          # English or Español
 DEFAULT_TEMPERATURE=1.0           # AI creativity (0.0-2.0)
 
-# Local model configuration (used when no API key)
+# Local model configuration
 LOCAL_MODEL_NAME=HuggingFaceTB/SmolLM2-135M-Instruct
 
 # Server settings
-GRADIO_PORT=7860                  # Server port
-GRADIO_HOST=0.0.0.0              # Server host
+GRADIO_PORT=7860
+GRADIO_HOST=0.0.0.0
 ```
 
-### Available Local Models
+### API Key Setup
 
-When running without a Google API key, you can choose from these models:
+For enhanced performance, get a free Google API key:
+1. Visit [Google AI Studio](https://ai.google.dev/gemini-api/docs/api-key)
+2. Create your API key following the instructions
+3. Add to `.env`: `GOOGLE_API_KEY=your_api_key_here`
 
+Without an API key, the system automatically uses local models (slower but fully offline).
+
+### Model Selection
+
+**Automatic Selection:**
+- With `GOOGLE_API_KEY`: Uses Google Gemini 2.0 Flash (recommended)
+- Without API key: Automatically uses local SmolLM2-135M (offline)
+
+**Available Local Models:**
 - `HuggingFaceTB/SmolLM2-135M-Instruct` - Fastest, smallest (default)
 - `HuggingFaceTB/SmolLM2-360M-Instruct` - Balanced performance
 - `HuggingFaceTB/SmolLM2-1.7B` - Better quality, slower
 - `HuggingFaceTB/SmolLM3-3B` - Best quality, slowest
 
-### Model Selection Logic
+**Performance Comparison:**
 
-- **With GOOGLE_API_KEY**: Uses Google Gemini 2.0 Flash (fast, cloud-based)
-- **Without API key**: Uses local SmolLM2-135M (slower, but completely offline)
-
-## AI Capabilities Used
-
-| Capability | Implementation |
-|------------|----------------|
-| **Few-shot Prompting** | System prompts with example scenarios guide narrative generation |
-| **Long Context** | Full conversation history maintained for coherent multi-turn stories |
-| **Audio Understanding** | Voice input transcribed locally via Whisper |
-| **Agent Architecture** | Story flow managed through narrator and player nodes |
-| **Context Caching** | Session state preserved for consistent storytelling |
-| **Streaming** | Real-time response generation for immediate engagement |
-
-## Docker Details
-
-The Docker image includes:
-- Pre-downloaded AI models (SmolLM2, Whisper small)
-- Pre-downloaded TTS voices (English & Spanish)
-- Optimized multi-stage build
-- Non-root user for security
-- Health checks
+| Feature | Google Gemini | Local Models |
+|---------|---------------|-------------|
+| Setup | Requires API key | No setup |
+| Speed | Very fast | Slower (CPU) |
+| Quality | Superior | Good |
+| Privacy | Cloud | Fully offline |
+| Cost | Free tier | Completely free |
+| Resources | Minimal | High CPU usage |
 
 ## Development
 
-### Local Development
-
-```bash
-# Install development dependencies
-pip install -r requirements.txt
-
-# Run with debug mode
-python app.py --debug
-
-# Run tests (when available)
-pytest
-```
-
-### Project Structure Principles
-
-- **PEP 8 Compliant**: 79-character lines, proper naming conventions
+### Architecture Principles
 - **Clean Architecture**: Single responsibility, dependency injection
-- **Modular Design**: Each component has a specific purpose
+- **Modular Design**: Each component has a specific purpose  
+- **PEP 8 Compliant**: 79-character lines, proper naming conventions
 - **Error Handling**: Graceful fallbacks and user-friendly messages
 
-## Educational Background
-
-This project was developed for the [5-day Gen AI Intensive Course with Google](https://rsvp.withgoogle.com/events/google-generative-ai-intensive_2025q1) capstone project and demonstrates practical application of:
-
-- Large Language Models (LLMs)
-- Multimodal AI (text + voice)
-- Agent-based architectures
-- Real-time streaming
-- Cloud and local model deployment
-
-## Contributing
-
-Contributions welcome! Please feel free to submit pull requests or open issues.
+### Key Implementation Details
+- **Model Abstraction**: BaseModel interface allows swapping AI providers
+- **Multimodal Pipeline**: Integrated text and voice processing
+- **State Management**: Conversation history preserved in Gradio state
+- **Resource Optimization**: 8-bit quantization for local models
 
 ## License
 

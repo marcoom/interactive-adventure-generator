@@ -138,7 +138,6 @@ class TTSEngine:
     def cleanup_temp_files(self) -> None:
         """Clean up temporary audio files."""
         try:
-            import os
             temp_dir = Path(tempfile.gettempdir())
             
             # Find and remove temporary audio files

@@ -7,7 +7,11 @@ from models.base_model import BaseModel
 
 
 class StoryManager:
-    """Manages story state and conversation flow."""
+    """Manages story state and conversation flow.
+    
+    This class handles the conversation history, user input processing,
+    and coordinates with the language model for response generation.
+    """
 
     def __init__(self, model: BaseModel):
         """Initialize story manager with model.

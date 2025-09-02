@@ -7,7 +7,11 @@ from models.base_model import BaseModel
 
 
 class NarratorAgent:
-    """Narrator agent for story generation with system prompts and examples."""
+    """Narrator agent for story generation with system prompts and examples.
+    
+    This class manages the AI narrator that generates interactive stories
+    based on user choices and preferences.
+    """
 
     # System prompt for the narrator
     NARRATOR_SYSTEM_MESSAGE = (

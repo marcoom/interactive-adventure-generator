@@ -5,7 +5,11 @@ from typing import Optional
 
 
 class Settings:
-    """Application configuration settings."""
+    """Application configuration settings.
+    
+    Manages environment variables, defaults, and configuration validation
+    for the Interactive Adventure Generator application.
+    """
 
     def __init__(self):
         """Initialize settings with environment variables and defaults."""

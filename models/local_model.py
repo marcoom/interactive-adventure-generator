@@ -2,15 +2,23 @@
 
 import multiprocessing as mp
 import queue
-import threading
 import atexit
 from typing import Iterator, List
-from langchain.schema import BaseMessage, SystemMessage, HumanMessage, AIMessage
+from langchain.schema import (
+    BaseMessage, SystemMessage, HumanMessage, AIMessage
+)
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 from quanto import quantize, freeze
 
 from .base_model import BaseModel
+
+# Constants for timeouts and limits
+MODEL_LOADING_TIMEOUT = 300  # 5 minutes
+GENERATION_TIMEOUT = 60  # 1 minute
+CLEANUP_TIMEOUT = 5  # seconds
+MAX_INPUT_LENGTH = 2048
+MAX_NEW_TOKENS = 512
 
 
 class LocalModel(BaseModel):
@@ -48,17 +56,20 @@ class LocalModel(BaseModel):
         try:
             # Send ready check and wait for response
             self.request_queue.put({"type": "ready_check"})
-            response = self.response_queue.get(timeout=300)  # 5 minute timeout for loading
+            response = self.response_queue.get(timeout=MODEL_LOADING_TIMEOUT)
             if response.get("status") != "ready":
-                raise RuntimeError(f"LLM process failed to start: {response.get('error', 'Unknown error')}")
+                error_msg = response.get('error', 'Unknown error')
+                raise RuntimeError(f"LLM process failed to start: {error_msg}")
         except queue.Empty:
-            raise RuntimeError("LLM process failed to start within timeout period")
+            raise RuntimeError(
+                "LLM process failed to start within timeout period"
+            )
     
     def _cleanup(self):
         """Clean up the LLM process."""
         if hasattr(self, 'llm_process') and self.llm_process.is_alive():
             self.request_queue.put({"type": "shutdown"})
-            self.llm_process.join(timeout=5)
+            self.llm_process.join(timeout=CLEANUP_TIMEOUT)
             if self.llm_process.is_alive():
                 self.llm_process.terminate()
                 self.llm_process.join()
@@ -81,11 +92,9 @@ class LocalModel(BaseModel):
                     trust_remote_code=False
                 )
                 
-                # Set pad token if not available
                 if tokenizer.pad_token is None:
                     tokenizer.pad_token = tokenizer.eos_token
                 
-                # Apply int8 quantization to model weights
                 try:
                     quantize(model=model, weights="int8", activations=None)
                     freeze(model)
@@ -120,7 +129,9 @@ class LocalModel(BaseModel):
                             chat_messages.append({"role": "assistant", "content": message.content})
             
             # Use tokenizer's built-in chat template
-            if hasattr(tokenizer, 'apply_chat_template') and tokenizer.chat_template is not None:
+            has_template = (hasattr(tokenizer, 'apply_chat_template') and 
+                           tokenizer.chat_template is not None)
+            if has_template:
                 return tokenizer.apply_chat_template(
                     chat_messages, 
                     tokenize=False, 
@@ -146,9 +157,8 @@ class LocalModel(BaseModel):
                 
             tokens_to_remove = [
                 "<|system|>", "<|user|>", "<|assistant|>", 
-                "<|im_start|>", "<|im_end|>",
-                "System:", "User:", "Assistant:",
-                "[INST]", "[/INST]", "<s>", "</s>"
+                "<|im_start|>", "<|im_end|>", "System:", "User:", 
+                "Assistant:", "[INST]", "[/INST]", "<s>", "</s>"
             ]
             
             cleaned = text
@@ -157,10 +167,91 @@ class LocalModel(BaseModel):
             
             return cleaned
         
+        def handle_generate_request(request):
+            """Handle text generation request."""
+            try:
+                prompt = messages_to_prompt(request["messages"])
+                temperature = request.get("temperature", 1.0)
+                
+                inputs = tokenizer(
+                    prompt, 
+                    return_tensors="pt", 
+                    truncation=True,
+                    max_length=MAX_INPUT_LENGTH
+                )
+                
+                with torch.no_grad():
+                    outputs = model.generate(
+                        inputs.input_ids,
+                        attention_mask=inputs.attention_mask,
+                        max_new_tokens=MAX_NEW_TOKENS,
+                        temperature=temperature,
+                        do_sample=True,
+                        pad_token_id=tokenizer.eos_token_id,
+                        eos_token_id=tokenizer.eos_token_id
+                    )
+                
+                new_tokens = outputs[0][inputs.input_ids.shape[1]:]
+                response = tokenizer.decode(new_tokens, skip_special_tokens=True)
+                response = clean_response(response)
+                
+                response_queue.put({"status": "success", "response": response.strip()})
+            except Exception as e:
+                response_queue.put({"status": "error", "error": str(e)})
+
+        def handle_stream_request(request):
+            """Handle streaming generation request."""
+            try:
+                prompt = messages_to_prompt(request["messages"])
+                temperature = request.get("temperature", 1.0)
+                
+                inputs = tokenizer(
+                    prompt, 
+                    return_tensors="pt", 
+                    truncation=True,
+                    max_length=MAX_INPUT_LENGTH
+                )
+                
+                input_length = inputs.input_ids.shape[1]
+                response_queue.put({"status": "stream_start"})
+                
+                with torch.no_grad():
+                    for _ in range(MAX_NEW_TOKENS):
+                        outputs = model.generate(
+                            inputs.input_ids,
+                            attention_mask=inputs.attention_mask,
+                            max_new_tokens=1,
+                            temperature=temperature,
+                            do_sample=True,
+                            pad_token_id=tokenizer.eos_token_id,
+                            eos_token_id=tokenizer.eos_token_id
+                        )
+                        
+                        if outputs[0][-1] == tokenizer.eos_token_id:
+                            break
+                        
+                        new_token = outputs[0][input_length:]
+                        if len(new_token) > 0:
+                            token_text = tokenizer.decode(
+                                new_token[-1:], 
+                                skip_special_tokens=True
+                            )
+                            cleaned_token = clean_response(token_text)
+                            if cleaned_token.strip():
+                                response_queue.put({"status": "token", "token": cleaned_token})
+                        
+                        inputs.input_ids = outputs
+                        attention_extension = torch.ones((1, 1), dtype=inputs.attention_mask.dtype)
+                        inputs.attention_mask = torch.cat([inputs.attention_mask, attention_extension], dim=1)
+                        input_length += 1
+                
+                response_queue.put({"status": "stream_end"})
+            except Exception as e:
+                response_queue.put({"status": "error", "error": str(e)})
+
         # Load model on startup
         model_loaded = load_model()
         
-        # Send ready status
         if model_loaded:
             response_queue.put({"status": "ready"})
         else:
@@ -177,92 +268,12 @@ class LocalModel(BaseModel):
                 elif request["type"] == "ready_check":
                     response_queue.put({"status": "ready"})
                 elif request["type"] == "generate":
-                    try:
-                        prompt = messages_to_prompt(request["messages"])
-                        temperature = request.get("temperature", 1.0)
-                        
-                        inputs = tokenizer(
-                            prompt, 
-                            return_tensors="pt", 
-                            truncation=True,
-                            max_length=2048
-                        )
-                        
-                        with torch.no_grad():
-                            outputs = model.generate(
-                                inputs.input_ids,
-                                attention_mask=inputs.attention_mask,
-                                max_new_tokens=512,
-                                temperature=temperature,
-                                do_sample=True,
-                                pad_token_id=tokenizer.eos_token_id,
-                                eos_token_id=tokenizer.eos_token_id
-                            )
-                        
-                        new_tokens = outputs[0][inputs.input_ids.shape[1]:]
-                        response = tokenizer.decode(new_tokens, skip_special_tokens=True)
-                        response = clean_response(response)
-                        
-                        response_queue.put({"status": "success", "response": response.strip()})
-                    
-                    except Exception as e:
-                        response_queue.put({"status": "error", "error": str(e)})
-                
+                    handle_generate_request(request)
                 elif request["type"] == "stream":
-                    try:
-                        prompt = messages_to_prompt(request["messages"])
-                        temperature = request.get("temperature", 1.0)
-                        
-                        inputs = tokenizer(
-                            prompt, 
-                            return_tensors="pt", 
-                            truncation=True,
-                            max_length=2048
-                        )
-                        
-                        input_length = inputs.input_ids.shape[1]
-                        
-                        # Signal start of streaming
-                        response_queue.put({"status": "stream_start"})
-                        
-                        with torch.no_grad():
-                            for _ in range(512):  # max_new_tokens
-                                outputs = model.generate(
-                                    inputs.input_ids,
-                                    attention_mask=inputs.attention_mask,
-                                    max_new_tokens=1,
-                                    temperature=temperature,
-                                    do_sample=True,
-                                    pad_token_id=tokenizer.eos_token_id,
-                                    eos_token_id=tokenizer.eos_token_id
-                                )
-                                
-                                if outputs[0][-1] == tokenizer.eos_token_id:
-                                    break
-                                
-                                new_token = outputs[0][input_length:]
-                                if len(new_token) > 0:
-                                    token_text = tokenizer.decode(
-                                        new_token[-1:], 
-                                        skip_special_tokens=True
-                                    )
-                                    cleaned_token = clean_response(token_text)
-                                    if cleaned_token.strip():
-                                        response_queue.put({"status": "token", "token": cleaned_token})
-                                
-                                inputs.input_ids = outputs
-                                attention_extension = torch.ones((1, 1), dtype=inputs.attention_mask.dtype)
-                                inputs.attention_mask = torch.cat([inputs.attention_mask, attention_extension], dim=1)
-                                input_length += 1
-                        
-                        # Signal end of streaming
-                        response_queue.put({"status": "stream_end"})
-                    
-                    except Exception as e:
-                        response_queue.put({"status": "error", "error": str(e)})
+                    handle_stream_request(request)
             
             except queue.Empty:
-                continue  # Timeout, continue loop
+                continue
             except Exception as e:
                 response_queue.put({"status": "error", "error": str(e)})
 
@@ -307,7 +318,7 @@ class LocalModel(BaseModel):
             })
             
             # Wait for response
-            response = self.response_queue.get(timeout=60)  # 1 minute timeout
+            response = self.response_queue.get(timeout=GENERATION_TIMEOUT)
             
             if response["status"] == "success":
                 return response["response"]
@@ -342,7 +353,7 @@ class LocalModel(BaseModel):
             # Stream tokens from worker process
             while True:
                 try:
-                    response = self.response_queue.get(timeout=60)  # 1 minute timeout
+                    response = self.response_queue.get(timeout=GENERATION_TIMEOUT)
                     
                     if response["status"] == "stream_start":
                         continue  # Start of stream, keep waiting for tokens

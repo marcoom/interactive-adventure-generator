@@ -43,7 +43,8 @@ class GradioInterface:
         autoplay_enabled: bool,
         temperature_value: float,
         chat_history: List[Tuple[str, str]]
-    ) -> Iterator[Tuple[List[Tuple[str, str]], List[Tuple[str, str]], gr.update, Optional[gr.update]]]:
+    ) -> Iterator[Tuple[List[Tuple[str, str]], List[Tuple[str, str]], 
+                       gr.update, Optional[gr.update]]]:
         """Process user input and stream LLM response with audio generation."""
         try:
             # Update model temperature
@@ -93,8 +94,9 @@ class GradioInterface:
                 return
 
             # Stream response generation
+            system_msg = self.narrator.get_system_message()
             for token, updated_history in self.story_manager.generate_response_stream(
-                self.narrator.get_system_message(), final_input
+                system_msg, final_input
             ):
                 yield (
                     updated_history, updated_history,
@@ -139,7 +141,8 @@ class GradioInterface:
         autoplay_enabled: bool,
         temperature_value: float,
         user_preferences: str
-    ) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]], gr.update, Optional[gr.update]]:
+    ) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]], 
+               gr.update, Optional[gr.update]]:
         """Reset conversation with updated settings."""
         try:
             # Validate inputs
