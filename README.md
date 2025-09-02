@@ -27,11 +27,11 @@ Click below to open the interactive demo on Hugging Face Spaces.
 
 ```bash
 # Build and run
-docker build -t interactive-adventure .
-docker run -p 7860:7860 interactive-adventure
+docker build -t interactive-adventure-generator .
+docker run -p 7860:7860 interactive-adventure-generator
 
 # With Google API key (optional, for better performance)
-docker run -p 7860:7860 -e GOOGLE_API_KEY=your_key_here interactive-adventure
+docker run -p 7860:7860 -e GOOGLE_API_KEY=your_key_here interactive-adventure-generator
 ```
 
 ### Local Installation
@@ -178,7 +178,7 @@ Without an API key, the system automatically uses local models (slower but fully
 - **Model Abstraction**: BaseModel interface allows swapping AI providers
 - **Multimodal Pipeline**: Integrated text and voice processing
 - **State Management**: Conversation history preserved in Gradio state
-- **Resource Optimization**: 8-bit quantization for local models
+- **Resource Optimization**: 8-bit quantization for local models weights
 
 ## License
 
