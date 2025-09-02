@@ -154,12 +154,19 @@ class NarratorAgent:
             )
 
     def get_system_message(self) -> str:
-        """Get the narrator system message.
+        """Get the narrator system message with language instructions.
         
         Returns:
-            System message for the narrator
+            Complete system message for the narrator including language
         """
-        return self.NARRATOR_SYSTEM_MESSAGE
+        system_parts = [self.NARRATOR_SYSTEM_MESSAGE]
+        
+        # Add language instruction
+        language_prompt = self.get_language_prompt()
+        if language_prompt:
+            system_parts.append(f" {language_prompt}")
+        
+        return "".join(system_parts)
 
     def update_model_temperature(self, temperature: float) -> None:
         """Update the model temperature setting.

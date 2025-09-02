@@ -3,6 +3,7 @@
 import multiprocessing as mp
 import queue
 import atexit
+import random
 from typing import Iterator, List
 from langchain.schema import (
     BaseMessage, SystemMessage, HumanMessage, AIMessage
@@ -170,6 +171,10 @@ class LocalModel(BaseModel):
         def handle_generate_request(request):
             """Handle text generation request."""
             try:
+                # Set random seed for different results each time
+                seed = random.randint(0, 2**32 - 1)
+                torch.manual_seed(seed)
+                
                 prompt = messages_to_prompt(request["messages"])
                 temperature = request.get("temperature", 1.0)
                 
@@ -202,6 +207,10 @@ class LocalModel(BaseModel):
         def handle_stream_request(request):
             """Handle streaming generation request."""
             try:
+                # Set random seed for different results each time
+                seed = random.randint(0, 2**32 - 1)
+                torch.manual_seed(seed)
+                
                 prompt = messages_to_prompt(request["messages"])
                 temperature = request.get("temperature", 1.0)
                 
