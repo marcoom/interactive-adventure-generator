@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+env/
+venv/
+.env
+.venv
+
+# Claude
+CLAUDE.md
+.claude
+
+# Model files and data (too large for git)
+data/voices/
+data/models/
+
+# Temporary files
+temp_*.wav
+temp_*.mp3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Testing
+.pytest_cache/
+.coverage
+
+# Environment variables
+.env
