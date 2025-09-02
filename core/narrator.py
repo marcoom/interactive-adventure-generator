@@ -15,52 +15,61 @@ class NarratorAgent:
 
     # System prompt for the narrator
     NARRATOR_SYSTEM_MESSAGE = (
-        "You are the narrator of an interactive story where the player's "
-        "choices directly influence the progression and outcome of the "
-        "narrative. Begin with an engaging introduction: set the stage with "
-        "vivid, sensory details; describe the setting, introduce key "
-        "characters, and hint at the main conflict. Speak directly to the "
-        "player using 'you' to draw them into the story. As the story "
-        "unfolds, organically introduce decision points where you ask the "
-        "player what will he do. Reflect the consequences of the player's "
-        "choices, leading to multiple possible endings. If the narrative "
-        "reaches a point where the character dies, end with 'The End.' If "
-        "the story concludes naturally, finish with 'The End.'"
+        "You are the narrator of an interactive story. Write ONLY the story "
+        "content itself - no explanations, no meta-commentary, no multiple "
+        "options. Stay in character at all times. Begin with an engaging "
+        "introduction: set the stage with vivid, sensory details; describe "
+        "the setting, introduce key characters, and hint at the main conflict. "
+        "Speak directly to the player using 'you' to draw them into the story. "
+        "As the story unfolds, organically introduce decision points where you "
+        "ask the player what will he do. Reflect the consequences of the "
+        "player's choices, leading to multiple possible endings. If the "
+        "narrative reaches a point where the character dies, end with exactly "
+        "'The End.' If the story concludes naturally, finish with exactly "
+        "'The End.' Always use the exact phrase 'The End.' in English, "
+        "regardless of the language you are responding in. Never break "
+        "character or explain what you are doing."
     )
 
     # Story generation guidelines
     INTRO_STORY_PROMPT = (
-        "Generate a welcome message for the interactive story with a new "
-        "setting, introducing the player's role, environment, key characters, "
-        "and hinting at the main conflict. End with a question asking what "
-        "the player will do. Do not present possible alternatives, let the "
-        "player create his own."
+        "Start the interactive story immediately. Create a new setting, "
+        "introduce the player's role, describe the environment with sensory "
+        "details, introduce key characters, and hint at the main conflict. "
+        "End with a single question asking what the player will do. Write "
+        "only the story content - no explanations or options."
     )
 
-    # Example scenarios
+    # Example scenarios - clean, direct story openings
     EXAMPLE1 = (
-        "Example 1: You are a warrior in a medieval town, your sister "
-        "recently died at the hands of an evil sorcerer. You are currently "
-        "heading to the market to complete an errand for a friend, where you "
-        "find a stranger sitting on a table and mysteriously looking at you. "
-        "What will you do?"
+        "You are a warrior in the medieval town of Ravenshollow. The cobblestone "
+        "streets echo with your heavy footsteps as grief weighs on your heart - "
+        "your sister fell to an evil sorcerer's dark magic just days ago. The "
+        "morning market bustles around you as you complete an errand for your "
+        "friend Henrik, but a hooded stranger at a wooden table catches your eye. "
+        "He stares directly at you with piercing blue eyes, his weathered hands "
+        "drumming a strange rhythm on the table's surface. What will you do?"
     )
 
     EXAMPLE2 = (
-        "Example 2: You are a pirate in Blackbeard's ship. The morning was "
-        "going as usual, with the salty odor and calm waters, until you hear "
-        "a stomp and see a giant tentacle going into the water. You ask "
-        "another tripulant but he didn't hear or see anything. What will you "
-        "do?"
+        "The salty spray of the Caribbean sea hits your face as you stand on "
+        "the deck of Blackbeard's ship, the Queen Anne's Revenge. Dawn breaks "
+        "peacefully over calm waters when suddenly - THUD! - something massive "
+        "strikes the hull. You glimpse a enormous tentacle, thick as a tree trunk, "
+        "sliding back into the depths. When you turn to alert your crewmate "
+        "beside you, he just shrugs. 'Heard nothin', saw nothin',' he mutters, "
+        "returning to his rope work. The ocean surface shows no trace of the "
+        "creature. What will you do?"
     )
 
     EXAMPLE3 = (
-        "Example 3: You are a spaceship captain in the hunt for the infamous "
-        "thief Lauren DeHugh, your crew follows you with pride and loyalty, "
-        "but recently the moods have been weird, you suspect that the new "
-        "passenger may have something to do, but it could also be nothing. "
-        "Currently, you need to check the map and then you have a few "
-        "minutes of spare time. What do you want to do?"
+        "Captain's quarters aboard the starship Nebula's Edge feel unusually "
+        "tense as you hunt the galaxy's most wanted thief, Lauren DeHugh. Your "
+        "loyal crew has served you for years, but lately strange whispers echo "
+        "through the corridors. The new passenger you picked up on Kepler Station "
+        "keeps to herself, but something about her feels... familiar. You need to "
+        "review the star charts before your next jump, but the nagging suspicion "
+        "won't leave you alone. What will you do?"
     )
 
     def __init__(self, model: BaseModel, language: str = "English"):
@@ -138,13 +147,13 @@ class NarratorAgent:
             Generated initial story text
         """
         messages = [
-            SystemMessage(content=self.NARRATOR_SYSTEM_MESSAGE),
+            SystemMessage(content=self.get_system_message()),
             HumanMessage(content=self.build_initial_story_prompt())
         ]
         
         try:
             return self.model.generate(messages)
-        except Exception as e:
+        except Exception:
             # Fallback message if generation fails
             return (
                 "Welcome to your adventure! You find yourself standing at "
