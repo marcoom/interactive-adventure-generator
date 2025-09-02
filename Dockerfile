@@ -2,7 +2,7 @@
 # Multi-stage build for optimized container size
 
 # Build stage for downloading models
-FROM python:3.11-slim as model-downloader
+FROM python:3.11-slim AS model-downloader
 
 # Install system dependencies for downloading models
 RUN apt-get update && apt-get install -y \
@@ -12,43 +12,18 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python packages needed for model downloads
-RUN pip install --no-cache-dir \
-    torch --index-url https://download.pytorch.org/whl/cpu \
-    transformers \
-    openai-whisper \
-    piper-tts
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir transformers openai-whisper piper-tts
 
 # Create directories for models
 RUN mkdir -p /tmp/models /tmp/voices
 
-# Pre-download local model
-RUN python -c "from transformers import AutoModelForCausalLM, AutoTokenizer; \
-    model_name='HuggingFaceTB/SmolLM2-135M-Instruct'; \
-    tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir='/tmp/models'); \
-    model = AutoModelForCausalLM.from_pretrained(model_name, cache_dir='/tmp/models')"
 
 # Pre-download Whisper model
 RUN python -c "import whisper; whisper.load_model('small', download_root='/tmp/models')"
 
-# Pre-download Piper TTS voices
-RUN python -c "
-from piper.voice import PiperVoice
-from piper.download import get_voices, ensure_voice_exists, find_voice
-from pathlib import Path
-
-download_dir = Path('/tmp/voices')
-download_dir.mkdir(exist_ok=True)
-
-voices_info = get_voices(download_dir)
-voice_names = ['es_ES-carlfm-x_low', 'en_US-joe-medium']
-
-for voice_name in voice_names:
-    try:
-        ensure_voice_exists(voice_name, [download_dir], download_dir, voices_info)
-        print(f'Downloaded voice: {voice_name}')
-    except Exception as e:
-        print(f'Warning: Failed to download {voice_name}: {e}')
-"
+# Copy local TTS voices instead of downloading
+COPY data/voices/* /tmp/voices/
 
 # Production stage
 FROM python:3.11-slim
@@ -59,13 +34,17 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV GRADIO_SERVER_NAME=0.0.0.0
 ENV GRADIO_SERVER_PORT=7860
 
-# Install system dependencies
+# Install system dependencies including build tools for PyTorch compilation
 RUN apt-get update && apt-get install -y \
     # Audio processing
     libsndfile1 \
     ffmpeg \
     # System utilities
     curl \
+    # Build tools for PyTorch JIT compilation (fixes quantization errors)
+    build-essential \
+    g++ \
+    cmake \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
@@ -78,9 +57,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy pre-downloaded models from build stage
-COPY --from=model-downloader /tmp/models /home/appuser/.cache
-COPY --from=model-downloader /tmp/voices /home/appuser/.local/share/piper-tts/piper-voices
+# Copy pre-downloaded Whisper models from build stage with correct ownership
+COPY --from=model-downloader --chown=appuser:appuser /tmp/models /home/appuser/.cache
+COPY --from=model-downloader --chown=appuser:appuser /tmp/voices /home/appuser/.local/share/piper-tts/piper-voices
 
 # Copy application code
 COPY --chown=appuser:appuser . .

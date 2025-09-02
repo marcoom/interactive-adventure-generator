@@ -153,7 +153,7 @@ class GradioInterface:
             self.model.set_temperature(temperature_value)
             self.narrator.set_language(selected_language)
             self.narrator.set_user_preferences(user_preferences)
-            
+
             # Generate new story
             new_message = self.narrator.generate_initial_story()
             new_history = [("", new_message)]
@@ -186,6 +186,14 @@ class GradioInterface:
                 self.initial_chat_history, self.initial_chat_history,
                 gr.update(interactive=True, value=""),
                 gr.update(value=self.initial_audio)
+            )
+
+    def show_local_model_warning(self):
+        """Show warning if using local model."""
+        if settings.use_local_model:
+            gr.Warning(
+                "⚠️ Running with local AI model: Responses may be slower and less coherent than cloud-based models. For better performance, set your GOOGLE_API_KEY environment variable.",
+                duration=10
             )
 
     def create_interface(self) -> gr.Blocks:
@@ -265,6 +273,13 @@ class GradioInterface:
                 outputs=[chat_box, chat_state, user_input, narration_audio],
                 queue=False
             )
+            
+            # Show local model warning on load
+            demo.load(
+                fn=self.show_local_model_warning,
+                inputs=None,
+                outputs=None
+            )
 
         return demo
 
@@ -285,7 +300,7 @@ class GradioInterface:
         signal.signal(signal.SIGTERM, signal_handler)
         
         try:
-            demo.launch(
+            demo.queue().launch(
                 server_name=settings.gradio_host,
                 server_port=settings.gradio_port,
                 share=share,

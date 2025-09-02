@@ -4,15 +4,22 @@ An AI-powered storytelling application that creates dynamic, interactive narrati
 
 Supports both cloud-based AI (Google Gemini) and fully offline local models, with voice interaction and multilingual narration.
 
+![Gradio User Interface](/media/gradio-ui.png)
+
 ## Features
 
 - **Dual AI Support**: Google Gemini 2.0 Flash or local CPU-based models
 - **Voice Interaction**: Speak your choices with Whisper speech-to-text
-- **Audio Narration**: Listen to AI-generated stories with Piper TTS
+- **Audio Narration**: Listen to AI-generated stories with Piper TTS in a natural sounding voice
 - **Multilingual**: English and Spanish text and voice support
 - **Customizable**: Adjust AI creativity and story preferences
 - **Web Interface**: Clean Gradio-based UI
 - **Docker Ready**: Containerized with pre-downloaded models
+
+## Live Demo
+Click below to open the interactive demo on Hugging Face Spaces.
+
+[Launch now](https://huggingface.co/spaces/marcoom/interactive-adventure-generator)
 
 ## Quick Start
 
@@ -20,11 +27,11 @@ Supports both cloud-based AI (Google Gemini) and fully offline local models, wit
 
 ```bash
 # Build and run
-docker build -t interactive-adventure .
-docker run -p 7860:7860 interactive-adventure
+docker build -t interactive-adventure-generator .
+docker run -p 7860:7860 interactive-adventure-generator
 
 # With Google API key (optional, for better performance)
-docker run -p 7860:7860 -e GOOGLE_API_KEY=your_key_here interactive-adventure
+docker run -p 7860:7860 -e GOOGLE_API_KEY=your_key_here interactive-adventure-generator
 ```
 
 ### Local Installation
@@ -50,13 +57,16 @@ Visit `http://localhost:7860` to start your adventure. Works offline with local 
 
 ## Usage
 
+![Demo](/media/demo.gif)
+
 ### How It Works
 
 1. **Story Introduction**: AI generates an initial scenario and presents you with a situation
 2. **Make Your Choice**: Type your action or use the microphone to speak your decision
 3. **Story Continues**: AI responds with consequences based on your choices
 4. **Branching Paths**: Your decisions directly influence story direction and outcomes
-5. **Natural Endings**: Stories conclude when the narrative reaches a natural end
+5. **Natural Endings**: Stories conclude when the narrative reaches a natural end.
+6. **User Preferences**: You can prompt the narrator with your preferences (characters, locations, goals, etc.) and it will generate a new story based on them
 
 ### Input Methods
 - **Text Input**: Type actions and decisions in the input field
@@ -168,7 +178,7 @@ Without an API key, the system automatically uses local models (slower but fully
 - **Model Abstraction**: BaseModel interface allows swapping AI providers
 - **Multimodal Pipeline**: Integrated text and voice processing
 - **State Management**: Conversation history preserved in Gradio state
-- **Resource Optimization**: 8-bit quantization for local models
+- **Resource Optimization**: 8-bit quantization for local models weights
 
 ## License
 
