@@ -23,8 +23,24 @@ Click below to open the interactive demo on Hugging Face Spaces.
 
 ## Quick Start
 
-### Docker (Recommended)
+### Docker
 
+**Pull from Docker Hub**
+The Docker image is available on Docker Hub at https://hub.docker.com/r/marcoom/interactive-adventure-generator
+
+To pull the image, run:
+
+```bash
+# Pull and run
+docker pull marcoom/interactive-adventure-generator:1.0.0
+docker run -p 7860:7860 interactive-adventure-generator
+
+# With Google API key (optional, for better performance)
+docker run -p 7860:7860 -e GOOGLE_API_KEY=your_key_here interactive-adventure-generator
+```
+
+**Local Build**
+To build the image locally, run:
 ```bash
 # Build and run
 docker build -t interactive-adventure-generator .
@@ -107,7 +123,11 @@ interactive-adventure-generator/
 ├── utils/
 │   └── helpers.py             # Utility functions
 ├── notebooks/                 # Jupyter demos and prototypes
-└── data/                      # Pre-downloaded models and voices
+├── data/                      # Pre-downloaded models and voices
+│   ├── models/                # Local AI model files
+│   └── voices/                # TTS voice model files
+├── documents/                 # Project documentation
+└── media/                     # Images and demo files
 ```
 
 The application follows clean architecture principles with modular components. The `models/` directory implements an abstract base class pattern for swapping between cloud and local AI providers. The `notebooks/` directory contains the original Jupyter prototype and individual component demonstrations.
